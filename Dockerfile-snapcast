@@ -1,0 +1,29 @@
+FROM debian:buster-slim
+
+RUN apt-get update \
+ && apt-get install -y \
+    git curl wget \
+    build-essential cmake \
+    libasound2-dev libvorbisidec-dev libvorbis-dev libopus-dev libflac-dev alsa-utils libavahi-client-dev avahi-daemon
+
+ENV BOOST_ROOT=/boost
+RUN mkdir $BOOST_ROOT \
+ && curl -SL https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz | tar -xz --strip 1 -C $BOOST_ROOT
+
+#ARG SNAPCAST_REF=v0.17.1
+#ARG SNAPCAST_REF=7da35880e8b6b7fe6414ac9c439be204dc5e1cad
+ARG SNAPCAST_REF=9353c61d7bfbdb4b9a4160d2688ba65e3bab976e
+
+RUN git clone https://github.com/badaix/snapcast /snapcast \
+ && cd /snapcast && git checkout $SNAPCAST_REF \
+ && cd externals && git submodule update --init --recursive
+
+#RUN cd /snapcast \
+# && make server ADD_CFLAGS="-I$BOOST_ROOT" -j4 \
+# && cp server/snapserver /usr/bin/snapserver
+
+RUN cd /snapcast && mkdir build && cd build \
+ && cmake -DBOOST_ROOT="$BOOST_ROOT" .. \
+ && make -j4 && make install
+
+CMD ["/usr/local/bin/snapserver", "-c", "/etc/snapserver.conf"]

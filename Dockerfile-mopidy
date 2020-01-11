@@ -1,0 +1,15 @@
+FROM debian:buster-slim
+
+ARG MOPIDY_VERSION=3.0.1-2
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+ && apt-get update && apt-get install -y wget gnupg2 \
+ && wget -q -O - https://apt.mopidy.com/mopidy.gpg | apt-key add - \
+ && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list \
+ && apt-get update && apt-get install -y \
+    mopidy-local=3.0.0-1 \
+    mopidy-mpd=3.0.0-1 \
+    mopidy=${MOPIDY_VERSION} \
+    python3-pip
+
+CMD ["mopidy", "--config", "/etc/mopidy.conf"]

@@ -1,0 +1,75 @@
+version: '3.7'
+networks:
+  snapcast:
+services:
+  snapserver:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-snapcast"
+    container_name: "snapserver"
+    privileged: true
+    restart: "always"
+    volumes:
+      - "./snapserver.conf:/etc/snapserver.conf:ro"
+      - "./snapserver.json:/root/.config/snapserver/server.json"
+      - "/var/run/dbus:/var/run/dbus"
+    networks:
+      - "snapcast"
+    ports:
+      - "1704:1704" # stream out
+      - "1705:1705" # tcp
+      - "1780:1780" # http
+      - "4950-4999:4950-4999" # stream(s) in
+  librespot-1:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-librespot"
+    container_name: "librespot-1"
+    restart: "always"
+    depends_on:
+      - "snapserver"
+    networks:
+      - "snapcast"
+    environment:
+      TARGET_HOST: "snapserver"
+      TARGET_PORT: "4953"
+      LIBRESPOT_USER: ${LIBRESPOT_1_USER}
+      LIBRESPOT_PASSWORD: ${LIBRESPOT_1_PASSWORD}
+  librespot-2:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-librespot"
+    container_name: "librespot-2"
+    restart: "always"
+    depends_on:
+      - "snapserver"
+    networks:
+      - "snapcast"
+    environment:
+      TARGET_HOST: "snapserver"
+      TARGET_PORT: "4954"
+      LIBRESPOT_USER: ${LIBRESPOT_2_USER}
+      LIBRESPOT_PASSWORD: ${LIBRESPOT_2_PASSWORD}
+  mopidy:
+    build:
+      context: "."
+      dockerfile: "Dockerfile-mopidy"
+    container_name: "mopidy"
+    restart: "always"
+    depends_on:
+      - "snapserver"
+    volumes:
+      - "./mopidy.conf:/etc/mopidy.conf"
+      - "/var/run/dbus:/var/run/dbus"
+    ports:
+      - "6600:6600"
+    networks:
+      - "snapcast"
+  nginx:
+    image: "nginx:1.17.6"
+    container_name: "nginx"
+    restart: "always"
+    volumes:
+      - "./html:/usr/share/nginx/html:ro"
+    ports:
+      - "9080:80"
